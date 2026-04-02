@@ -1,0 +1,20 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Google": {
+    "ClientId": "your_google_client_id_here",
+    "ClientSecret": "your_google_client_secret_here"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost,1433;Database=BuddyScript;User Id=sa;Password=sa@123;TrustServerCertificate=True;"
+  },
+  "Jwt": {
+    "Key": "your_super_secret_jwt_key_here",
+    "Issuer": "BuddyScript.Backend",
+    "Audience": "BuddyScript.Client"
+  }
+}

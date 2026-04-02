@@ -1,0 +1,16 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Ports are purposefully not exposed to the host system. 
+    # NGINX (Frontend container) will proxy API requests via the internal docker network.
+    # Hooks directly into the `.env` output we generate dynamically in our Pipeline!
+    env_file:
+      - .env
+    networks:
+      - buddynet
+
+networks:
+  buddynet:
+    external: true
