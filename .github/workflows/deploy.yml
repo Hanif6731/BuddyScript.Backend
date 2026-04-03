@@ -18,15 +18,17 @@ jobs:
       - name: Write environment secrets to .env
         shell: pwsh
         run: |
-          @"
-          ConnectionStrings__DefaultConnection=${{ secrets.PROD_DB_CONNECTION }}
-          Jwt__Key=${{ secrets.PROD_JWT_SECRET }}
-          Jwt__CookieName=${{ secrets.PROD_JWT_COOKIE_NAME }}
-          Jwt__Issuer=${{ secrets.PROD_JWT_ISSUER }}
-          Jwt__Audience=${{ secrets.PROD_JWT_AUDIENCE }}
-          Google__ClientId=${{ secrets.PROD_GOOGLE_CLIENT_ID }}
-          Google__ClientSecret=${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}
-          "@ | Set-Content -Path .env -Encoding UTF8
+          $lines = @(
+            "ConnectionStrings__DefaultConnection=${{ secrets.PROD_DB_CONNECTION }}",
+            "Jwt__Key=${{ secrets.PROD_JWT_SECRET }}",
+            "Jwt__CookieName=${{ secrets.PROD_JWT_COOKIE_NAME }}",
+            "Jwt__Issuer=${{ secrets.PROD_JWT_ISSUER }}",
+            "Jwt__Audience=${{ secrets.PROD_JWT_AUDIENCE }}",
+            "Google__ClientId=${{ secrets.PROD_GOOGLE_CLIENT_ID }}",
+            "Google__ClientSecret=${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}",
+            "ASPNETCORE_ENVIRONMENT=Production"
+          )
+          $lines | Set-Content -Path .env -Encoding UTF8
 
       - name: Deploy with Docker Compose
         shell: pwsh
