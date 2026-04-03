@@ -13,5 +13,4 @@ public class Comment
     public int? ParentCommentId { get; set; }
     public Comment? ParentComment { get; set; }
     public ICollection<Comment> Replies { get; set; } = new List<Comment>();
-    public ICollection<Like> Likes { get; set; } = new List<Like>();
 }

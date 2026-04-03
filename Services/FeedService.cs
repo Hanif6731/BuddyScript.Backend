@@ -74,6 +74,12 @@ public class FeedService : IFeedService
 
         var posts = await _postRepository.GetFeedPosts(userId, page, pageSize).ToListAsync();
 
+        var postIds = posts.Select(p => p.Id).ToList();
+        var likes = await _context.Likes
+            .Where(l => l.EntityType == EntityType.Post && postIds.Contains(l.EntityId))
+            .ToListAsync();
+        var likesByPostId = likes.ToLookup(l => l.EntityId);
+
         return posts.Select(p => new PostResponseDto
         {
             Id           = p.Id,
@@ -83,8 +89,8 @@ public class FeedService : IFeedService
             CreatedAt    = p.CreatedAt,
             UserId       = p.UserId,
             UserFullName = $"{p.User!.FirstName} {p.User.LastName}",
-            LikeCount    = p.Likes.Count,
-            IsLikedByMe  = p.Likes.Any(l => l.UserId == userId),
+            LikeCount    = likesByPostId[p.Id].Count(),
+            IsLikedByMe  = likesByPostId[p.Id].Any(l => l.UserId == userId),
             CommentCount = p.Comments.Count
         }).ToList();
     }

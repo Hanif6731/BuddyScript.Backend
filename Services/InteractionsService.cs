@@ -54,18 +54,23 @@ public class InteractionsService : IInteractionsService
     public async Task<List<CommentResponseDto>> GetCommentsHierarchicalAsync(int postId, int userId)
     {
         var comments = await _commentRepository.GetCommentsForPost(postId).ToListAsync();
+        var commentIds = comments.Select(c => c.Id).ToList();
+        var likes = await _context.Likes
+            .Where(l => l.EntityType == EntityType.Comment && commentIds.Contains(l.EntityId))
+            .ToListAsync();
+        var likesByCommentId = likes.ToLookup(l => l.EntityId);
 
         var dtos = comments.Select(c => new CommentResponseDto
         {
-            Id            = c.Id,
-            Content       = c.Content,
-            PostId        = c.PostId,
-            UserId        = c.UserId,
-            UserFullName  = $"{c.User!.FirstName} {c.User.LastName}",
-            CreatedAt     = c.CreatedAt,
+            Id              = c.Id,
+            Content         = c.Content,
+            PostId          = c.PostId,
+            UserId          = c.UserId,
+            UserFullName    = $"{c.User!.FirstName} {c.User.LastName}",
+            CreatedAt       = c.CreatedAt,
             ParentCommentId = c.ParentCommentId,
-            LikeCount     = c.Likes.Count,
-            IsLikedByMe   = c.Likes.Any(l => l.UserId == userId)
+            LikeCount       = likesByCommentId[c.Id].Count(),
+            IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId)
         }).ToList();
 
         var lookup = dtos.ToLookup(c => c.ParentCommentId);
@@ -78,6 +83,11 @@ public class InteractionsService : IInteractionsService
     public async Task<List<CommentResponseDto>> GetTopLevelCommentsAsync(int postId, int userId)
     {
         var allComments = await _commentRepository.GetCommentsForPost(postId).ToListAsync();
+        var commentIds = allComments.Select(c => c.Id).ToList();
+        var likes = await _context.Likes
+            .Where(l => l.EntityType == EntityType.Comment && commentIds.Contains(l.EntityId))
+            .ToListAsync();
+        var likesByCommentId = likes.ToLookup(l => l.EntityId);
 
         var replyCounts = allComments
             .Where(c => c.ParentCommentId != null)
@@ -96,8 +106,8 @@ public class InteractionsService : IInteractionsService
                 UserFullName    = $"{c.User!.FirstName} {c.User.LastName}",
                 CreatedAt       = c.CreatedAt,
                 ParentCommentId = null,
-                LikeCount       = c.Likes.Count,
-                IsLikedByMe     = c.Likes.Any(l => l.UserId == userId),
+                LikeCount       = likesByCommentId[c.Id].Count(),
+                IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId),
                 ReplyCount      = replyCounts.GetValueOrDefault(c.Id, 0),
                 Replies         = new List<CommentResponseDto>()
             }).ToList();
@@ -106,8 +116,13 @@ public class InteractionsService : IInteractionsService
     public async Task<List<CommentResponseDto>> GetRepliesAsync(int commentId, int userId)
     {
         var directReplies = await _commentRepository.GetRepliesForComment(commentId).ToListAsync();
-
         var replyIds = directReplies.Select(r => r.Id).ToList();
+
+        var likes = await _context.Likes
+            .Where(l => l.EntityType == EntityType.Comment && replyIds.Contains(l.EntityId))
+            .ToListAsync();
+        var likesByCommentId = likes.ToLookup(l => l.EntityId);
+
         var grandchildCounts = await _commentRepository
             .GetRepliesForComments(replyIds)
             .GroupBy(c => c.ParentCommentId!.Value)
@@ -125,8 +140,8 @@ public class InteractionsService : IInteractionsService
             UserFullName    = $"{c.User!.FirstName} {c.User.LastName}",
             CreatedAt       = c.CreatedAt,
             ParentCommentId = c.ParentCommentId,
-            LikeCount       = c.Likes.Count,
-            IsLikedByMe     = c.Likes.Any(l => l.UserId == userId),
+            LikeCount       = likesByCommentId[c.Id].Count(),
+            IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId),
             ReplyCount      = replyCounts.GetValueOrDefault(c.Id, 0),
             Replies         = new List<CommentResponseDto>()
         }).ToList();

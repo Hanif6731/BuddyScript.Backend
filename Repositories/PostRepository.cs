@@ -22,7 +22,6 @@ public class PostRepository : IPostRepository
     public IQueryable<Post> GetFeedPosts(int userId, int page, int pageSize) =>
         _context.Posts
             .Include(p => p.User)
-            .Include(p => p.Likes)
             .Include(p => p.Comments)
             .Where(p => p.IsPublic || p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)

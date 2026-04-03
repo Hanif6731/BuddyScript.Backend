@@ -12,5 +12,4 @@ public class Post
     public int UserId { get; set; }
     public User? User { get; set; }
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
-    public ICollection<Like> Likes { get; set; } = new List<Like>();
 }

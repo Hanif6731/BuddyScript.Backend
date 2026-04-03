@@ -20,28 +20,24 @@ public class CommentRepository : ICommentRepository
     public IQueryable<Comment> GetCommentsForPost(int postId) =>
         _context.Comments
             .Include(c => c.User)
-            .Include(c => c.Likes)
             .Where(c => c.PostId == postId)
             .OrderBy(c => c.CreatedAt);
 
     public IQueryable<Comment> GetTopLevelComments(int postId) =>
         _context.Comments
             .Include(c => c.User)
-            .Include(c => c.Likes)
             .Where(c => c.PostId == postId && c.ParentCommentId == null)
             .OrderBy(c => c.CreatedAt);
 
     public IQueryable<Comment> GetRepliesForComment(int commentId) =>
         _context.Comments
             .Include(c => c.User)
-            .Include(c => c.Likes)
             .Where(c => c.ParentCommentId == commentId)
             .OrderBy(c => c.CreatedAt);
 
     public IQueryable<Comment> GetRepliesForComments(IEnumerable<int> parentIds) =>
         _context.Comments
             .Include(c => c.User)
-            .Include(c => c.Likes)
             .Where(c => c.ParentCommentId != null && parentIds.Contains(c.ParentCommentId!.Value))
             .OrderBy(c => c.CreatedAt);
 }
