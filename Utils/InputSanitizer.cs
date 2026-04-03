@@ -1,16 +1,22 @@
-using System.Text.Encodings.Web;
-using System.Text.Unicode;
+using System.Text.RegularExpressions;
 
 namespace BuddyScript.Backend.Utils;
 
+// Strips HTML/script tags to prevent stored XSS while preserving plain text characters
+// (apostrophes, quotes, etc.) that React escapes at render time.
 public static class InputSanitizer
 {
-    private static readonly HtmlEncoder _encoder =
-        HtmlEncoder.Create(new TextEncoderSettings(UnicodeRanges.All));
+    private static readonly Regex _htmlTags = new(@"<[^>]*>", RegexOptions.Compiled);
+    private static readonly Regex _dangerousProtocols = new(@"javascript\s*:", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public static string Sanitize(string input) =>
-        _encoder.Encode(input.Trim());
+    public static string Sanitize(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        var result = _htmlTags.Replace(input.Trim(), string.Empty);
+        result = _dangerousProtocols.Replace(result, string.Empty);
+        return result;
+    }
 
     public static string? SanitizeNullable(string? input) =>
-        input is null ? null : _encoder.Encode(input.Trim());
+        input is null ? null : Sanitize(input);
 }
