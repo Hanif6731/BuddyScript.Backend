@@ -50,5 +50,6 @@ public class PostResponseDto
     public string UserFullName { get; set; } = string.Empty;
     public int LikeCount { get; set; }
     public bool IsLikedByMe { get; set; }
+    public string? MyReaction { get; set; }
     public int CommentCount { get; set; }
 }

@@ -9,4 +9,6 @@ public class Like
     public User? User { get; set; }
     public int EntityId { get; set; }
     public EntityType EntityType { get; set; }
+    [MaxLength(20)]
+    public string ReactionType { get; set; } = "Like";
 }

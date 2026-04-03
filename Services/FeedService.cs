@@ -91,6 +91,7 @@ public class FeedService : IFeedService
             UserFullName = $"{p.User!.FirstName} {p.User.LastName}",
             LikeCount    = likesByPostId[p.Id].Count(),
             IsLikedByMe  = likesByPostId[p.Id].Any(l => l.UserId == userId),
+            MyReaction   = likesByPostId[p.Id].FirstOrDefault(l => l.UserId == userId)?.ReactionType,
             CommentCount = p.Comments.Count
         }).ToList();
     }

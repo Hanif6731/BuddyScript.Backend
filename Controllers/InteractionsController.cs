@@ -63,8 +63,8 @@ public class InteractionsController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var isLiked = await _interactionsService.ToggleLikeAsync(userId, dto);
-        return Ok(new { Liked = isLiked });
+        var reaction = await _interactionsService.ToggleLikeAsync(userId, dto);
+        return Ok(new { Liked = reaction != null, Reaction = reaction });
     }
 
     [HttpGet("likers/{entityId}/{entityType}")]

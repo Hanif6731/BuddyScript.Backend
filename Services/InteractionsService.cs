@@ -70,7 +70,8 @@ public class InteractionsService : IInteractionsService
             CreatedAt       = c.CreatedAt,
             ParentCommentId = c.ParentCommentId,
             LikeCount       = likesByCommentId[c.Id].Count(),
-            IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId)
+            IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId),
+            MyReaction      = likesByCommentId[c.Id].FirstOrDefault(l => l.UserId == userId)?.ReactionType
         }).ToList();
 
         var lookup = dtos.ToLookup(c => c.ParentCommentId);
@@ -108,6 +109,7 @@ public class InteractionsService : IInteractionsService
                 ParentCommentId = null,
                 LikeCount       = likesByCommentId[c.Id].Count(),
                 IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId),
+                MyReaction      = likesByCommentId[c.Id].FirstOrDefault(l => l.UserId == userId)?.ReactionType,
                 ReplyCount      = replyCounts.GetValueOrDefault(c.Id, 0),
                 Replies         = new List<CommentResponseDto>()
             }).ToList();
@@ -142,40 +144,51 @@ public class InteractionsService : IInteractionsService
             ParentCommentId = c.ParentCommentId,
             LikeCount       = likesByCommentId[c.Id].Count(),
             IsLikedByMe     = likesByCommentId[c.Id].Any(l => l.UserId == userId),
+            MyReaction      = likesByCommentId[c.Id].FirstOrDefault(l => l.UserId == userId)?.ReactionType,
             ReplyCount      = replyCounts.GetValueOrDefault(c.Id, 0),
             Replies         = new List<CommentResponseDto>()
         }).ToList();
     }
 
-    public async Task<bool> ToggleLikeAsync(int userId, LikeDto dto)
+    public async Task<string?> ToggleLikeAsync(int userId, LikeDto dto)
     {
         var entityType = (EntityType)dto.EntityType;
+        var reactionType = string.IsNullOrWhiteSpace(dto.ReactionType) ? "Like" : dto.ReactionType;
 
         using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try
         {
             var existingLike = await _likeRepository.GetLikeAsync(userId, dto.EntityId, entityType);
 
-            bool liked;
+            string? result;
             if (existingLike != null)
             {
-                _likeRepository.Remove(existingLike);
-                liked = false;
+                if (existingLike.ReactionType == reactionType)
+                {
+                    _likeRepository.Remove(existingLike);
+                    result = null;
+                }
+                else
+                {
+                    existingLike.ReactionType = reactionType;
+                    result = reactionType;
+                }
             }
             else
             {
                 await _likeRepository.AddAsync(new Like
                 {
-                    UserId     = userId,
-                    EntityId   = dto.EntityId,
-                    EntityType = entityType
+                    UserId       = userId,
+                    EntityId     = dto.EntityId,
+                    EntityType   = entityType,
+                    ReactionType = reactionType
                 });
-                liked = true;
+                result = reactionType;
             }
 
             await _likeRepository.SaveChangesAsync();
             await tx.CommitAsync();
-            return liked;
+            return result;
         }
         catch
         {

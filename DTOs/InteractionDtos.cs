@@ -23,6 +23,9 @@ public class LikeDto
 
     [Range(0, 1, ErrorMessage = "EntityType must be 0 (Post) or 1 (Comment).")]
     public int EntityType { get; set; }
+
+    [MaxLength(20)]
+    public string ReactionType { get; set; } = "Like";
 }
 
 public class CommentResponseDto
@@ -36,6 +39,7 @@ public class CommentResponseDto
     public int? ParentCommentId { get; set; }
     public int LikeCount { get; set; }
     public bool IsLikedByMe { get; set; }
+    public string? MyReaction { get; set; }
     public int ReplyCount { get; set; }
     public List<CommentResponseDto> Replies { get; set; } = new();
 }
