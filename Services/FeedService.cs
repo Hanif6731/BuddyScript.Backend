@@ -96,10 +96,13 @@ public class FeedService : IFeedService
         }).ToList();
     }
 
-    public async Task<(byte[]? data, string? mimeType)> GetPostImageAsync(int postId)
+    public async Task<(byte[]? data, string? mimeType)> GetPostImageAsync(int postId, int? userId)
     {
         var post = await _postRepository.GetByIdAsync(postId);
-        if (post == null || post.ImageData == null || post.ImageMimeType == null)
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to view this image");
+
+        if (post.ImageData == null || post.ImageMimeType == null)
             return (null, null);
 
         return (post.ImageData, post.ImageMimeType);

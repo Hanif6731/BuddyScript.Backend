@@ -45,8 +45,14 @@ public class InteractionsController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var comments = await _interactionsService.GetTopLevelCommentsAsync(postId, userId, page, pageSize);
-        return Ok(comments);
+        try {
+            var comments = await _interactionsService.GetTopLevelCommentsAsync(postId, userId, page, pageSize);
+            return Ok(comments);
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet("replies/{commentId}")]
@@ -58,8 +64,14 @@ public class InteractionsController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var replies = await _interactionsService.GetRepliesAsync(commentId, userId, page, pageSize);
-        return Ok(replies);
+        try {
+            var replies = await _interactionsService.GetRepliesAsync(commentId, userId, page, pageSize);
+            return Ok(replies);
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpPost("like")]
@@ -85,7 +97,16 @@ public class InteractionsController : ControllerBase
     {
         if (entityId <= 0 || entityType < 0 || entityType > 1) return BadRequest();
 
-        var likers = await _interactionsService.GetLikersAsync(entityId, entityType);
-        return Ok(likers);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
+
+        try {
+            var likers = await _interactionsService.GetLikersAsync(entityId, entityType, userId);
+            return Ok(likers);
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(new { message = ex.Message });
+        }
     }
 }

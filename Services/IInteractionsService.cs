@@ -9,5 +9,5 @@ public interface IInteractionsService
     Task<List<CommentResponseDto>> GetTopLevelCommentsAsync(int postId, int userId, int page, int pageSize);
     Task<List<CommentResponseDto>> GetRepliesAsync(int commentId, int userId, int page, int pageSize);
     Task<string?> ToggleLikeAsync(int userId, LikeDto dto);
-    Task<List<LikerDto>> GetLikersAsync(int entityId, int entityType);
+    Task<List<LikerDto>> GetLikersAsync(int entityId, int entityType, int userId);
 }

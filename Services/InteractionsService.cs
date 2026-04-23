@@ -87,6 +87,10 @@ public class InteractionsService : IInteractionsService
 
     public async Task<List<CommentResponseDto>> GetTopLevelCommentsAsync(int postId, int userId, int page, int pageSize)
     {
+        var post = await _context.Posts.FindAsync(postId);
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to view comments for this post");
+
         page     = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
@@ -125,6 +129,12 @@ public class InteractionsService : IInteractionsService
 
     public async Task<List<CommentResponseDto>> GetRepliesAsync(int commentId, int userId, int page, int pageSize)
     {
+        var parentComment = await _commentRepository.GetByIdAsync(commentId);
+        if (parentComment == null) throw new KeyNotFoundException("Comment not found");
+        var post = await _context.Posts.FindAsync(parentComment.PostId);
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to view replies for this comment");
+
         page     = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
@@ -224,8 +234,21 @@ public class InteractionsService : IInteractionsService
         }
     }
 
-    public async Task<List<LikerDto>> GetLikersAsync(int entityId, int entityType)
+    public async Task<List<LikerDto>> GetLikersAsync(int entityId, int entityType, int userId)
     {
+        int targetPostId;
+        if ((EntityType)entityType == EntityType.Post) {
+            targetPostId = entityId;
+        } else {
+            var comment = await _commentRepository.GetByIdAsync(entityId);
+            if (comment == null) throw new KeyNotFoundException("Comment not found");
+            targetPostId = comment.PostId;
+        }
+
+        var post = await _context.Posts.FindAsync(targetPostId);
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to view likers for this entity");
+
         var likes = await _likeRepository
             .GetLikesByEntity(entityId, (EntityType)entityType)
             .ToListAsync();

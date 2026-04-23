@@ -52,9 +52,17 @@ public class FeedController : ControllerBase
     {
         if (postId <= 0) return BadRequest();
 
-        var (data, mimeType) = await _feedService.GetPostImageAsync(postId);
-        if (data == null || mimeType == null) return NotFound();
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int? userId = int.TryParse(userIdStr, out var id) ? id : null;
 
-        return File(data, mimeType);
+        try {
+            var (data, mimeType) = await _feedService.GetPostImageAsync(postId, userId);
+            if (data == null || mimeType == null) return NotFound();
+            return File(data, mimeType);
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException) {
+            return NotFound();
+        }
     }
 }
