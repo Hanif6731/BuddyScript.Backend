@@ -10,4 +10,5 @@ public interface ICommentRepository
     IQueryable<Comment> GetTopLevelComments(int postId);
     IQueryable<Comment> GetRepliesForComment(int commentId);
     IQueryable<Comment> GetRepliesForComments(IEnumerable<int> parentIds);
+    Task<Comment?> GetByIdAsync(int id);
 }

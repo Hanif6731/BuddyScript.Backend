@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
         var res = await _authService.RegisterAsync(dto);
-        if (res == null) return BadRequest(new { message = "Email is already registered." });
+        if (res == null) return BadRequest(new { message = "Registration failed. The email may already be in use or invalid." });
         return Ok(res);
     }
 

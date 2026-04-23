@@ -27,6 +27,10 @@ public class InteractionsService : IInteractionsService
 
     public async Task<int> CreateCommentAsync(int userId, CreateCommentDto dto)
     {
+        var post = await _context.Posts.FindAsync(dto.PostId);
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to comment on this post");
+
         var comment = new Comment
         {
             Content         = InputSanitizer.Sanitize(dto.Content),
@@ -81,9 +85,15 @@ public class InteractionsService : IInteractionsService
         return lookup[null].ToList();
     }
 
-    public async Task<List<CommentResponseDto>> GetTopLevelCommentsAsync(int postId, int userId)
+    public async Task<List<CommentResponseDto>> GetTopLevelCommentsAsync(int postId, int userId, int page, int pageSize)
     {
-        var allComments = await _commentRepository.GetCommentsForPost(postId).ToListAsync();
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var allComments = await _commentRepository.GetTopLevelComments(postId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
         var commentIds = allComments.Select(c => c.Id).ToList();
         var likes = await _context.Likes
             .Where(l => l.EntityType == EntityType.Comment && commentIds.Contains(l.EntityId))
@@ -96,8 +106,6 @@ public class InteractionsService : IInteractionsService
             .ToDictionary(g => g.Key, g => g.Count());
 
         return allComments
-            .Where(c => c.ParentCommentId == null)
-            .OrderBy(c => c.CreatedAt)
             .Select(c => new CommentResponseDto
             {
                 Id              = c.Id,
@@ -115,9 +123,15 @@ public class InteractionsService : IInteractionsService
             }).ToList();
     }
 
-    public async Task<List<CommentResponseDto>> GetRepliesAsync(int commentId, int userId)
+    public async Task<List<CommentResponseDto>> GetRepliesAsync(int commentId, int userId, int page, int pageSize)
     {
-        var directReplies = await _commentRepository.GetRepliesForComment(commentId).ToListAsync();
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var directReplies = await _commentRepository.GetRepliesForComment(commentId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
         var replyIds = directReplies.Select(r => r.Id).ToList();
 
         var likes = await _context.Likes
@@ -154,6 +168,19 @@ public class InteractionsService : IInteractionsService
     {
         var entityType = (EntityType)dto.EntityType;
         var reactionType = string.IsNullOrWhiteSpace(dto.ReactionType) ? "Like" : dto.ReactionType;
+
+        int targetPostId;
+        if (entityType == EntityType.Post) {
+            targetPostId = dto.EntityId;
+        } else {
+            var comment = await _commentRepository.GetByIdAsync(dto.EntityId);
+            if (comment == null) throw new KeyNotFoundException("Comment not found");
+            targetPostId = comment.PostId;
+        }
+
+        var post = await _context.Posts.FindAsync(targetPostId);
+        if (post == null) throw new KeyNotFoundException("Post not found");
+        if (!post.IsPublic && post.UserId != userId) throw new UnauthorizedAccessException("Not authorized to like this entity");
 
         using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         try

@@ -26,33 +26,39 @@ public class InteractionsController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var commentId = await _interactionsService.CreateCommentAsync(userId, dto);
-        return Ok(new { Id = commentId });
+        try {
+            var commentId = await _interactionsService.CreateCommentAsync(userId, dto);
+            return Ok(new { Id = commentId });
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet("comments/{postId}")]
     [EnableRateLimiting("reads")]
-    public async Task<IActionResult> GetComments(int postId)
+    public async Task<IActionResult> GetComments(int postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         if (postId <= 0) return BadRequest();
 
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var comments = await _interactionsService.GetTopLevelCommentsAsync(postId, userId);
+        var comments = await _interactionsService.GetTopLevelCommentsAsync(postId, userId, page, pageSize);
         return Ok(comments);
     }
 
     [HttpGet("replies/{commentId}")]
     [EnableRateLimiting("reads")]
-    public async Task<IActionResult> GetReplies(int commentId)
+    public async Task<IActionResult> GetReplies(int commentId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         if (commentId <= 0) return BadRequest();
 
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var replies = await _interactionsService.GetRepliesAsync(commentId, userId);
+        var replies = await _interactionsService.GetRepliesAsync(commentId, userId, page, pageSize);
         return Ok(replies);
     }
 
@@ -63,8 +69,14 @@ public class InteractionsController : ControllerBase
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        var reaction = await _interactionsService.ToggleLikeAsync(userId, dto);
-        return Ok(new { Liked = reaction != null, Reaction = reaction });
+        try {
+            var reaction = await _interactionsService.ToggleLikeAsync(userId, dto);
+            return Ok(new { Liked = reaction != null, Reaction = reaction });
+        } catch (UnauthorizedAccessException) {
+            return Forbid();
+        } catch (KeyNotFoundException ex) {
+            return NotFound(new { message = ex.Message });
+        }
     }
 
     [HttpGet("likers/{entityId}/{entityType}")]

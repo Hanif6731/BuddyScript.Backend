@@ -27,17 +27,19 @@ public class CommentRepository : ICommentRepository
         _context.Comments
             .Include(c => c.User)
             .Where(c => c.PostId == postId && c.ParentCommentId == null)
-            .OrderBy(c => c.CreatedAt);
+            .OrderByDescending(c => c.CreatedAt);
 
     public IQueryable<Comment> GetRepliesForComment(int commentId) =>
         _context.Comments
             .Include(c => c.User)
             .Where(c => c.ParentCommentId == commentId)
-            .OrderBy(c => c.CreatedAt);
+            .OrderByDescending(c => c.CreatedAt);
 
     public IQueryable<Comment> GetRepliesForComments(IEnumerable<int> parentIds) =>
         _context.Comments
             .Include(c => c.User)
             .Where(c => c.ParentCommentId != null && parentIds.Contains(c.ParentCommentId!.Value))
             .OrderBy(c => c.CreatedAt);
+
+    public async Task<Comment?> GetByIdAsync(int id) => await _context.Comments.FindAsync(id);
 }
